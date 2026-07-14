@@ -49,6 +49,27 @@ html, body, [class*="css"] {{
     font-family: 'IBM Plex Sans', -apple-system, sans-serif;
 }}
 
+/* FORCE LIGHT THEME regardless of the visitor's system/browser dark-mode
+   setting - the brand palette above assumes a white page background, so
+   Streamlit's auto dark-mode would otherwise make headers/text unreadable. */
+.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"],
+section.main, .main .block-container {{
+    background-color: #FFFFFF !important;
+}}
+[data-testid="stSidebar"], [data-testid="stSidebar"] > div {{
+    background-color: var(--panel) !important;
+}}
+[data-testid="stSidebar"] * {{
+    color: var(--ink) !important;
+}}
+.stApp p, .stApp span, .stApp label, .stApp div, h1, h2, h3 {{
+    color: var(--ink);
+}}
+[data-testid="stExpander"] {{
+    background-color: #FFFFFF !important;
+    border: 1px solid var(--hairline) !important;
+}}
+
 /* kill default streamlit chrome for a cleaner, branded feel */
 #MainMenu, footer, header[data-testid="stHeader"] {{ visibility: hidden; height: 0; }}
 .block-container {{ padding-top: 1rem; max-width: 1200px; }}
