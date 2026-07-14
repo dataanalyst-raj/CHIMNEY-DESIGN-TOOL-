@@ -15,8 +15,8 @@ IS 875 Part 3 Table 2 (k2 by height & terrain category), IS 6533 Cl 8.2.
 import math
 from dataclasses import dataclass
 from typing import List
-from .inputs import ChimneyInputs
-from .geometry import ZoneGeometry
+from inputs import ChimneyInputs
+from geometry import ZoneGeometry
 
 PI = math.pi
 
