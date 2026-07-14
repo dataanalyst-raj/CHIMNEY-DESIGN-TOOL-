@@ -17,9 +17,9 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-from modules.inputs import ChimneyInputs, default_zone_table
-from modules.geometry import calc_shell_geometry, total_shell_weight
-from modules.wind_loads import calc_wind_loads, total_base_shear_kg, total_base_moment_kgm
+from inputs import ChimneyInputs, default_zone_table
+from geometry import calc_shell_geometry, total_shell_weight
+from wind_loads import calc_wind_loads, total_base_shear_kg, total_base_moment_kgm
 
 st.set_page_config(page_title="Chimney Design Tool | Veda Engineering", layout="wide")
 
