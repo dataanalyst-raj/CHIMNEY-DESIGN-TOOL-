@@ -20,17 +20,125 @@ import plotly.graph_objects as go
 from inputs import ChimneyInputs, default_zone_table
 from geometry import calc_shell_geometry, total_shell_weight
 from wind_loads import calc_wind_loads, total_base_shear_kg, total_base_moment_kgm
+from assets import VEDA_LOGO_B64
 
-st.set_page_config(page_title="Chimney Design Tool | Veda Engineering", layout="wide")
+st.set_page_config(page_title="Chimney Design Tool | Veda Engineering",
+                    page_icon="🏭", layout="wide")
 
-st.title("🏭 IS 6533 Steel Chimney Design Tool")
-st.caption("Veda Engineering · Web Edition v1 · Shell Geometry & Static Wind Loads")
+# ═══════════════════════════════════════════════════════════════════
+# STYLE — Veda brand palette (red #D8242D sampled from the logo mark),
+# IBM Plex Sans for headers/body, IBM Plex Mono for all numeric/data
+# output (a technical, spec-sheet register that fits an engineering
+# calc tool rather than a generic system font).
+# ═══════════════════════════════════════════════════════════════════
+st.markdown(f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {{
+    --veda-red: #D8242D;
+    --veda-red-dark: #A81820;
+    --ink: #1A1A1A;
+    --steel: #4A5568;
+    --steel-light: #718096;
+    --hairline: #E2E2E4;
+    --panel: #F7F7F8;
+}}
+
+html, body, [class*="css"] {{
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+}}
+
+/* kill default streamlit chrome for a cleaner, branded feel */
+#MainMenu, footer, header[data-testid="stHeader"] {{ visibility: hidden; height: 0; }}
+.block-container {{ padding-top: 1rem; max-width: 1200px; }}
+
+/* numeric output reads as monospace, like a spec sheet */
+[data-testid="stDataFrame"] * , [data-testid="stMetricValue"], .stNumberInput input {{
+    font-family: 'IBM Plex Mono', monospace !important;
+}}
+
+/* ---------- masthead ---------- */
+.veda-masthead {{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 0 16px 0;
+    border-bottom: 3px solid var(--veda-red);
+    margin-bottom: 28px;
+}}
+.veda-masthead img {{ height: 56px; width: 56px; object-fit: contain; }}
+.veda-masthead .title-block {{ line-height: 1.15; }}
+.veda-masthead .company {{
+    font-size: 12px; font-weight: 600; letter-spacing: 0.14em;
+    color: var(--veda-red); text-transform: uppercase; margin: 0 0 2px 0;
+}}
+.veda-masthead .tool-name {{
+    font-size: 26px; font-weight: 700; color: var(--ink); margin: 0;
+}}
+.veda-masthead .tool-sub {{
+    font-size: 13px; color: var(--steel-light); margin: 2px 0 0 0;
+}}
+
+/* ---------- step rail: reflects the real calc pipeline ---------- */
+.step-header {{
+    display: flex; align-items: center; gap: 14px;
+    margin: 8px 0 4px 0;
+}}
+.step-badge {{
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--veda-red); color: white; font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600; font-size: 14px; display: flex; align-items: center;
+    justify-content: center;
+}}
+.step-title {{ font-size: 19px; font-weight: 700; color: var(--ink); margin: 0; }}
+.step-caption {{ font-size: 13px; color: var(--steel-light); margin: 2px 0 18px 44px; }}
+.step-rail {{
+    border-left: 2px solid var(--hairline); margin-left: 14px; padding-left: 30px;
+    margin-bottom: 6px;
+}}
+
+/* ---------- stat cards (replace default st.metric look) ---------- */
+.stat-row {{ display: flex; gap: 14px; margin: 4px 0 22px 0; flex-wrap: wrap; }}
+.stat-card {{
+    background: var(--panel); border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 14px 18px; flex: 1; min-width: 160px;
+}}
+.stat-card .label {{
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--steel-light);
+    text-transform: uppercase; margin: 0 0 4px 0;
+}}
+.stat-card .value {{
+    font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600;
+    color: var(--ink); margin: 0;
+}}
+.stat-card .delta {{ font-size: 12px; color: var(--steel-light); margin-top: 2px; }}
+.stat-card.accent {{ border-left: 3px solid var(--veda-red); }}
+
+/* section spacing */
+.section-gap {{ margin-top: 38px; }}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------
+# MASTHEAD
+# ---------------------------------------------------------------------
+st.markdown(f"""
+<div class="veda-masthead">
+    <img src="data:image/png;base64,{VEDA_LOGO_B64}" alt="Veda Engineering">
+    <div class="title-block">
+        <p class="company">Veda Engineering</p>
+        <p class="tool-name">Steel Chimney Design Tool</p>
+        <p class="tool-sub">IS 6533 (Part 2) &middot; Self-Supporting Steel Chimneys &middot; Web Edition v1</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
 # SIDEBAR: INPUTS
 # ---------------------------------------------------------------------
 with st.sidebar:
-    st.header("Inputs")
+    st.markdown("### Inputs")
 
     with st.expander("Geometry", expanded=True):
         H = st.number_input("Total height, H (m)", value=32.0, step=0.5)
@@ -63,6 +171,9 @@ with st.sidebar:
     with st.expander("Zone auto-split (starting point)", expanded=False):
         max_zone_len = st.number_input("Max zone height for auto-split (m)", value=6.0, step=0.5)
 
+    st.markdown("---")
+    st.caption("Veda Engineering · Internal Tool · v1")
+
 inputs = ChimneyInputs(
     H=H, id_top=id_top, base_elev=base_elev, flare_h=flare_h, flare_bot_od=flare_bot_od,
     density=density, design_temp=design_temp, ca_int=ca_int, ca_ext=ca_ext,
@@ -72,15 +183,36 @@ inputs = ChimneyInputs(
     max_zone_len=max_zone_len,
 )
 
+
+def stat_card(label, value, delta=None, accent=False):
+    accent_cls = " accent" if accent else ""
+    delta_html = f'<div class="delta">{delta}</div>' if delta else ""
+    return f"""<div class="stat-card{accent_cls}">
+        <p class="label">{label}</p>
+        <p class="value">{value}</p>
+        {delta_html}
+    </div>"""
+
+
+def step_header(number, title, caption):
+    st.markdown(f"""
+    <div class="section-gap">
+    <div class="step-header">
+        <div class="step-badge">{number}</div>
+        <p class="step-title">{title}</p>
+    </div>
+    <p class="step-caption">{caption}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # ---------------------------------------------------------------------
-# MAIN: EDITABLE ZONE TABLE
+# STEP 1 — ZONE TABLE
 # ---------------------------------------------------------------------
-st.subheader("1. Zone Table")
-st.caption(
-    "Edit Length, Thickness, and Proj. Dia directly — no auto/manual toggle needed. "
-    "'Proj Dia' is the ladder+platform projected width for that zone (mm); use a "
-    "larger value at any zone that contains a platform (typically 300-500mm)."
-)
+step_header(1, "Zone Table",
+             "Edit Length, Thickness, and Proj. Dia directly. 'Proj Dia' is the "
+             "ladder+platform projected width for that zone (mm) — use a larger "
+             "value at any zone that contains a platform, typically 300-500mm.")
 
 if "zone_table" not in st.session_state or st.session_state.get("_last_h") != (H, flare_h, max_zone_len):
     st.session_state.zone_table = pd.DataFrame(default_zone_table(inputs))
@@ -103,15 +235,17 @@ st.session_state.zone_table = edited
 zone_rows = edited.to_dict("records")
 
 total_len = sum(r["Length (m)"] for r in zone_rows)
-col1, col2 = st.columns(2)
-col1.metric("Total zone length", f"{total_len:.2f} m", delta=f"{total_len - H:+.2f} m vs H")
+delta_txt = f"{total_len - H:+.2f} m vs H = {H:.2f} m"
+st.markdown(f'<div class="stat-row">{stat_card("Total zone length", f"{total_len:.2f} m", delta_txt, accent=abs(total_len-H)>0.01)}</div>',
+            unsafe_allow_html=True)
 if abs(total_len - H) > 0.01:
     st.warning(f"Zone lengths sum to {total_len:.2f}m but H = {H:.2f}m — adjust lengths to match.")
 
 # ---------------------------------------------------------------------
-# SHELL GEOMETRY
+# STEP 2 — SHELL GEOMETRY
 # ---------------------------------------------------------------------
-st.subheader("2. Shell Geometry")
+step_header(2, "Shell Geometry",
+             "Zone-by-zone weight and OD profile, computed from the table above.")
 
 zones = calc_shell_geometry(inputs, zone_rows)
 geo_df = pd.DataFrame([{
@@ -125,10 +259,11 @@ geo_df = pd.DataFrame([{
 st.dataframe(geo_df, use_container_width=True, hide_index=True)
 
 total_wt = total_shell_weight(zones)
-c1, c2, c3 = st.columns(3)
-c1.metric("Total shell weight", f"{total_wt:,.1f} kg")
-c2.metric("Base OD", f"{zones[-1].bot_od:,.1f} mm")
-c3.metric("Top OD", f"{zones[0].top_od:,.1f} mm")
+st.markdown(f"""<div class="stat-row">
+    {stat_card("Total shell weight", f"{total_wt:,.1f} kg", accent=True)}
+    {stat_card("Base OD", f"{zones[-1].bot_od:,.1f} mm")}
+    {stat_card("Top OD", f"{zones[0].top_od:,.1f} mm")}
+</div>""", unsafe_allow_html=True)
 
 # OD profile chart
 fig = go.Figure()
@@ -138,17 +273,24 @@ for z in reversed(zones):  # base to top
     xs += [-z.bot_od / 2, -z.top_od / 2]
     ys += [elev, elev + z.length]
     elev += z.length
-fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#1f4e78", width=2), name="Left OD"))
-fig.add_trace(go.Scatter(x=[-x for x in xs], y=ys, mode="lines", line=dict(color="#1f4e78", width=2),
+fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#D8242D", width=2.5), name="Left OD"))
+fig.add_trace(go.Scatter(x=[-x for x in xs], y=ys, mode="lines", line=dict(color="#D8242D", width=2.5),
                           name="Right OD", showlegend=False))
-fig.update_layout(title="Shell profile (OD)", xaxis_title="mm", yaxis_title="Elevation (m)",
-                   height=420, showlegend=False, xaxis=dict(scaleanchor="y"))
+fig.update_layout(
+    title=dict(text="Shell Profile (OD)", font=dict(family="IBM Plex Sans", size=15, color="#1A1A1A")),
+    xaxis_title="mm", yaxis_title="Elevation (m)",
+    height=420, showlegend=False, xaxis=dict(scaleanchor="y"),
+    plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF",
+    font=dict(family="IBM Plex Mono", size=11, color="#4A5568"),
+    margin=dict(t=50, l=10, r=10, b=10),
+)
 st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------------------------
-# STATIC WIND LOADS
+# STEP 3 — STATIC WIND LOADS
 # ---------------------------------------------------------------------
-st.subheader("3. Static Wind Loads (IS 875 Part 3 & IS 6533 Cl 8.2)")
+step_header(3, "Static Wind Loads",
+             "IS 875 Part 3 &amp; IS 6533 Cl 8.2 — per-zone design wind pressure and force.")
 
 proj_dia = [r["Proj Dia (mm)"] for r in zone_rows]
 wind_loads = calc_wind_loads(inputs, zones, proj_dia)
@@ -162,14 +304,16 @@ wind_df = pd.DataFrame([{
 
 st.dataframe(wind_df, use_container_width=True, hide_index=True)
 
-c1, c2 = st.columns(2)
-c1.metric("Total base shear", f"{total_base_shear_kg(wind_loads):,.1f} kg")
-c2.metric("Total base moment", f"{total_base_moment_kgm(wind_loads):,.1f} kg·m")
+st.markdown(f"""<div class="stat-row">
+    {stat_card("Total base shear", f"{total_base_shear_kg(wind_loads):,.1f} kg", accent=True)}
+    {stat_card("Total base moment", f"{total_base_moment_kgm(wind_loads):,.1f} kg&middot;m", accent=True)}
+</div>""", unsafe_allow_html=True)
 
-st.divider()
+st.markdown("---")
 st.info(
     "**Roadmap:** Natural Frequency, Gust Factor, Dynamic Analysis, Seismic, "
     "Combined Stress, Base Foundation/Chair, and Flange Design are not yet "
     "ported to this web version. Ask to continue the port for any of these "
     "modules once you're happy with this slice."
 )
+st.caption("Veda Engineering · Internal Tool · Validated against Kurkumbh 32m chimney design (Dynastac reference, 08/01/2025)")
