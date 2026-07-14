@@ -16,7 +16,7 @@ exact match on OD progression (820->1195->1507.5->1820mm).
 import math
 from dataclasses import dataclass
 from typing import List
-from .inputs import ChimneyInputs
+from inputs import ChimneyInputs
 
 PI = math.pi
 
