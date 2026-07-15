@@ -242,11 +242,7 @@ inputs = ChimneyInputs(
 def stat_card(label, value, delta=None, accent=False):
     accent_cls = " accent" if accent else ""
     delta_html = f'<div class="delta">{delta}</div>' if delta else ""
-    return f"""<div class="stat-card{accent_cls}">
-        <p class="label">{label}</p>
-        <p class="value">{value}</p>
-        {delta_html}
-    </div>"""
+    return f'<div class="stat-card{accent_cls}"><p class="label">{label}</p><p class="value">{value}</p>{delta_html}</div>'
 
 
 def step_header(number, title, caption):
