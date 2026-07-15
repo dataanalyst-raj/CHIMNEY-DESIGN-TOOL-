@@ -153,16 +153,7 @@ section.main, .main .block-container {{
 # ---------------------------------------------------------------------
 # MASTHEAD
 # ---------------------------------------------------------------------
-st.markdown(f"""
-<div class="veda-masthead">
-    <img src="data:image/png;base64,{VEDA_LOGO_B64}" alt="Veda Engineering">
-    <div class="title-block">
-        <p class="company">Veda Engineering</p>
-        <p class="tool-name">Steel Chimney Design Tool</p>
-        <p class="tool-sub">IS 6533 (Part 2) &middot; Self-Supporting Steel Chimneys &middot; Web Edition v1</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(f"""<div class="veda-masthead"><img src="data:image/png;base64,{VEDA_LOGO_B64}" alt="Veda Engineering"><div class="title-block"><p class="company">Veda Engineering</p><p class="tool-name">Steel Chimney Design Tool</p><p class="tool-sub">IS 6533 (Part 2) &middot; Self-Supporting Steel Chimneys &middot; Web Edition v1</p></div></div>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
 # SIDEBAR: INPUTS
@@ -272,15 +263,7 @@ def stat_card(label, value, delta=None, accent=False):
 
 
 def step_header(number, title, caption):
-    st.markdown(f"""
-    <div class="section-gap">
-    <div class="step-header">
-        <div class="step-badge">{number}</div>
-        <p class="step-title">{title}</p>
-    </div>
-    <p class="step-caption">{caption}</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="section-gap"><div class="step-header"><div class="step-badge">{number}</div><p class="step-title">{title}</p></div><p class="step-caption">{caption}</p></div>""", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------
@@ -336,11 +319,7 @@ geo_df = pd.DataFrame([{
 st.dataframe(geo_df, use_container_width=True, hide_index=True)
 
 total_wt = total_shell_weight(zones)
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Total shell weight", f"{total_wt:,.1f} kg", accent=True)}
-    {stat_card("Base OD", f"{zones[-1].bot_od:,.1f} mm")}
-    {stat_card("Top OD", f"{zones[0].top_od:,.1f} mm")}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Total shell weight", f"{total_wt:,.1f} kg", accent=True)}{stat_card("Base OD", f"{zones[-1].bot_od:,.1f} mm")}{stat_card("Top OD", f"{zones[0].top_od:,.1f} mm")}</div>""", unsafe_allow_html=True)
 
 # OD profile chart
 fig = go.Figure()
@@ -381,10 +360,7 @@ wind_df = pd.DataFrame([{
 
 st.dataframe(wind_df, use_container_width=True, hide_index=True)
 
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Total base shear", f"{total_base_shear_kg(wind_loads):,.1f} kg", accent=True)}
-    {stat_card("Total base moment", f"{total_base_moment_kgm(wind_loads):,.1f} kg&middot;m", accent=True)}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Total base shear", f"{total_base_shear_kg(wind_loads):,.1f} kg", accent=True)}{stat_card("Total base moment", f"{total_base_moment_kgm(wind_loads):,.1f} kg&middot;m", accent=True)}</div>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
 # STEP 4 — NATURAL FREQUENCY
@@ -405,10 +381,7 @@ nf_df = pd.DataFrame([{
 } for i in range(len(zones))])
 st.dataframe(nf_df, use_container_width=True, hide_index=True)
 
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Natural frequency", f"{nf.nat_freq:.4f} Hz", accent=True)}
-    {stat_card("Period", f"{nf.nat_period:.4f} s", accent=True)}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Natural frequency", f"{nf.nat_freq:.4f} Hz", accent=True)}{stat_card("Period", f"{nf.nat_period:.4f} s", accent=True)}</div>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
 # STEP 5 — GUST FACTOR & ACROSS-WIND (STRAKES)
@@ -426,19 +399,9 @@ gust = calc_gust_factor(inputs, nf.nat_freq, vz_top, mean_od_top)
 
 gust_col1, gust_col2 = st.columns(2)
 with gust_col1:
-    st.markdown(f"""<div class="stat-row" style="flex-direction:column;">
-        {stat_card("Peak factor x roughness, gfr", f"{gust.gfr:.4f}")}
-        {stat_card("Turbulence length scale, L(h)", f"{gust.lh:.1f} m")}
-        {stat_card("Hourly-mean speed at top, Vh", f"{gust.vh:.2f} m/s")}
-        {stat_card("Background factor, B", f"{gust.background_b:.4f}")}
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="stat-row" style="flex-direction:column;">{stat_card("Peak factor x roughness, gfr", f"{gust.gfr:.4f}")}{stat_card("Turbulence length scale, L(h)", f"{gust.lh:.1f} m")}{stat_card("Hourly-mean speed at top, Vh", f"{gust.vh:.2f} m/s")}{stat_card("Background factor, B", f"{gust.background_b:.4f}")}</div>""", unsafe_allow_html=True)
 with gust_col2:
-    st.markdown(f"""<div class="stat-row" style="flex-direction:column;">
-        {stat_card("Size reduction factor, S", f"{gust.size_reduction_s:.4f}")}
-        {stat_card("Gust energy factor, E", f"{gust.energy_e:.5f}")}
-        {stat_card("Resonance term, phi", f"{gust.phi:.4f}")}
-        {stat_card("GUST FACTOR, G", f"{gust.G:.4f}", accent=True)}
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="stat-row" style="flex-direction:column;">{stat_card("Size reduction factor, S", f"{gust.size_reduction_s:.4f}")}{stat_card("Gust energy factor, E", f"{gust.energy_e:.5f}")}{stat_card("Resonance term, phi", f"{gust.phi:.4f}")}{stat_card("GUST FACTOR, G", f"{gust.G:.4f}", accent=True)}</div>""", unsafe_allow_html=True)
 
 dt_top3 = top_third_mean_od(inputs, zones)
 strakes = calc_strakes_check(inputs, nf.nat_freq, gust.vh, zones, dt_top3)
@@ -446,10 +409,7 @@ strakes = calc_strakes_check(inputs, nf.nat_freq, gust.vh, zones, dt_top3)
 st.markdown("**Across-wind (Cl A-3):**")
 strakes_status = "REQUIRED" if strakes.needed else "Not required"
 strakes_color = "#FFC7CE" if strakes.needed else "#C6EFCE"
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Critical Strouhal velocity, Vcr", f"{strakes.vcr:.3f} m/s")}
-    {stat_card("Dangerous range (0.33-0.80 Vh)", f"{strakes.range_lo:.2f} - {strakes.range_hi:.2f} m/s")}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Critical Strouhal velocity, Vcr", f"{strakes.vcr:.3f} m/s")}{stat_card("Dangerous range (0.33-0.80 Vh)", f"{strakes.range_lo:.2f} - {strakes.range_hi:.2f} m/s")}</div>""", unsafe_allow_html=True)
 st.markdown(f'<div style="background:{strakes_color};padding:10px 16px;border-radius:6px;'
             f'font-weight:600;display:inline-block;">Helical strakes: {strakes_status}</div>',
             unsafe_allow_html=True)
@@ -504,11 +464,7 @@ vortex = calc_module9_vortex(inputs, nf.nat_freq, zones[0].top_od)
 eq_ah = calc_seismic_ah(nf.nat_period, inputs.beta_soil, inputs.importance_i, inputs.z_seismic)
 gov = calc_governing_loads(inputs, zones, wind_loads, dyn, nf.mass, gust.G, eq_ah, proj_dia)
 
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Vortex Vcr (Cl 8.4)", f"{vortex.vcr:.3f} m/s", vortex.resonance)}
-    {stat_card("Seismic coeff, ah", f"{eq_ah:.5f}")}
-    {stat_card("Governing base moment", f"{gov.gov_base_moment:,.1f} kg&middot;m", accent=True)}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Vortex Vcr (Cl 8.4)", f"{vortex.vcr:.3f} m/s", vortex.resonance)}{stat_card("Seismic coeff, ah", f"{eq_ah:.5f}")}{stat_card("Governing base moment", f"{gov.gov_base_moment:,.1f} kg&middot;m", accent=True)}</div>""", unsafe_allow_html=True)
 
 gov_df = pd.DataFrame([{
     "Zone": i + 1, "3-sec Static (kg)": round(gov.f_3smw[i], 1),
@@ -534,11 +490,7 @@ cs_df = pd.DataFrame([{
 } for c in cs])
 st.dataframe(cs_df, use_container_width=True, hide_index=True)
 
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Base shear", f"{cs[-1].shear:,.1f} kg")}
-    {stat_card("Base dead+imposed", f"{cs[-1].dead_imp:,.1f} kg")}
-    {stat_card("Base moment", f"{cs[-1].bm:,.1f} kg&middot;m", accent=True)}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Base shear", f"{cs[-1].shear:,.1f} kg")}{stat_card("Base dead+imposed", f"{cs[-1].dead_imp:,.1f} kg")}{stat_card("Base moment", f"{cs[-1].bm:,.1f} kg&middot;m", accent=True)}</div>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
 # STEP 10 — BASE FOUNDATION & CHAIR STRESS
@@ -560,24 +512,14 @@ bf = calc_base_foundation(
     n_override=int(n_override) if n_override > 0 else None,
 )
 
-st.markdown(f"""<div class="stat-row">
-    {stat_card("PCD", f"{bf.pcd:,.0f} mm")}
-    {stat_card("Bolt count, N", f"{bf.n_bolts}")}
-    {stat_card("Bearing pressure", f"{bf.bearing_pressure:.2f} kg/cm2", "OK" if bf.bearing_ok else "FAIL")}
-    {stat_card("Bolt tension, Pb", f"{bf.bolt_tension:,.0f} kg")}
-    {stat_card("Plate thickness used", f"{bf.plate_thk_used:.0f} mm (req {bf.plate_thk_req:.1f})")}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("PCD", f"{bf.pcd:,.0f} mm")}{stat_card("Bolt count, N", f"{bf.n_bolts}")}{stat_card("Bearing pressure", f"{bf.bearing_pressure:.2f} kg/cm2", "OK" if bf.bearing_ok else "FAIL")}{stat_card("Bolt tension, Pb", f"{bf.bolt_tension:,.0f} kg")}{stat_card("Plate thickness used", f"{bf.plate_thk_used:.0f} mm (req {bf.plate_thk_req:.1f})")}</div>""", unsafe_allow_html=True)
 
 bcs = calc_base_chair_stress(inputs, bf.pcd, bf.n_bolts, bf.by, zones[-1].bot_od,
                                bf.plate_thk_used, bf.bolt_tension, inputs.allow_base_plate, material="IS 2062")
 
 st.caption(f"B&amp;Y solve: k={bf.by.k:.4f}, fc={bf.by.fc:.2f}, fs={bf.by.fs:.0f} kg/cm2, "
            f"Cc={bf.by.cc:.3f}, Ct={bf.by.ct:.3f}")
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Base plate stress", f"{bcs.base_plate_stress:.1f} kg/cm2", "OK" if bcs.base_plate_ok else "FAIL")}
-    {stat_card("Compression plate stress", f"{bcs.compr_plate_stress:.1f} kg/cm2", "OK" if bcs.compr_plate_ok else "FAIL")}
-    {stat_card("Gusset stress", f"{bcs.gusset_stress:.1f} / {bcs.gusset_allow:.1f} kg/cm2", "OK" if bcs.gusset_ok else "FAIL")}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Base plate stress", f"{bcs.base_plate_stress:.1f} kg/cm2", "OK" if bcs.base_plate_ok else "FAIL")}{stat_card("Compression plate stress", f"{bcs.compr_plate_stress:.1f} kg/cm2", "OK" if bcs.compr_plate_ok else "FAIL")}{stat_card("Gusset stress", f"{bcs.gusset_stress:.1f} / {bcs.gusset_allow:.1f} kg/cm2", "OK" if bcs.gusset_ok else "FAIL")}</div>""", unsafe_allow_html=True)
 status_color = "#C6EFCE" if bcs.status == "OK" else "#FFC7CE"
 st.markdown(f'<div style="background:{status_color};padding:10px 16px;border-radius:6px;'
             f'font-weight:600;display:inline-block;">Base chair status: {bcs.status}</div>',
@@ -599,13 +541,7 @@ fd_df = pd.DataFrame([{
 } for j in fd.joints])
 st.dataframe(fd_df, use_container_width=True, hide_index=True)
 
-st.markdown(f"""<div class="stat-row">
-    {stat_card("Governing bolt force, P", f"{fd.bolt_force:,.0f} kg")}
-    {stat_card("My (a) bolt-force bending", f"{fd.my_a:.1f} kgcm/cm")}
-    {stat_card("My (b) compressive bending", f"{fd.my_b:.1f} kgcm/cm")}
-    {stat_card("Governing My", f"{fd.my_governing:.1f} kgcm/cm", accent=True)}
-    {stat_card("Induced stress", f"{fd.stress:.0f} kg/cm2", "OK" if fd.stress_ok else "FAIL")}
-</div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="stat-row">{stat_card("Governing bolt force, P", f"{fd.bolt_force:,.0f} kg")}{stat_card("My (a) bolt-force bending", f"{fd.my_a:.1f} kgcm/cm")}{stat_card("My (b) compressive bending", f"{fd.my_b:.1f} kgcm/cm")}{stat_card("Governing My", f"{fd.my_governing:.1f} kgcm/cm", accent=True)}{stat_card("Induced stress", f"{fd.stress:.0f} kg/cm2", "OK" if fd.stress_ok else "FAIL")}</div>""", unsafe_allow_html=True)
 
 st.markdown("---")
 st.success("**All 11 modules ported and validated against the Kurkumbh 32m reference design.** "
