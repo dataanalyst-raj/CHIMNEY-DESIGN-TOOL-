@@ -40,115 +40,102 @@ st.set_page_config(page_title="Chimney Design Tool | Veda Engineering",
 # output (a technical, spec-sheet register that fits an engineering
 # calc tool rather than a generic system font).
 # ═══════════════════════════════════════════════════════════════════
-st.markdown(f"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
+st.markdown(f"""<style>@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 :root {{
-    --veda-red: #D8242D;
-    --veda-red-dark: #A81820;
-    --ink: #1A1A1A;
-    --steel: #4A5568;
-    --steel-light: #718096;
-    --hairline: #E2E2E4;
-    --panel: #F7F7F8;
+--veda-red: #D8242D;
+--veda-red-dark: #A81820;
+--ink: #1A1A1A;
+--steel: #4A5568;
+--steel-light: #718096;
+--hairline: #E2E2E4;
+--panel: #F7F7F8;
 }}
-
 html, body, [class*="css"] {{
-    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+font-family: 'IBM Plex Sans', -apple-system, sans-serif;
 }}
-
 /* FORCE LIGHT THEME regardless of the visitor's system/browser dark-mode
-   setting - the brand palette above assumes a white page background, so
-   Streamlit's auto dark-mode would otherwise make headers/text unreadable. */
+setting - the brand palette above assumes a white page background, so
+Streamlit's auto dark-mode would otherwise make headers/text unreadable. */
 .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"],
 section.main, .main .block-container {{
-    background-color: #FFFFFF !important;
+background-color: #FFFFFF !important;
 }}
 [data-testid="stSidebar"], [data-testid="stSidebar"] > div {{
-    background-color: var(--panel) !important;
+background-color: var(--panel) !important;
 }}
 [data-testid="stSidebar"] * {{
-    color: var(--ink) !important;
+color: var(--ink) !important;
 }}
 .stApp p, .stApp span, .stApp label, .stApp div, h1, h2, h3 {{
-    color: var(--ink);
+color: var(--ink);
 }}
 [data-testid="stExpander"] {{
-    background-color: #FFFFFF !important;
-    border: 1px solid var(--hairline) !important;
+background-color: #FFFFFF !important;
+border: 1px solid var(--hairline) !important;
 }}
-
 /* kill default streamlit chrome for a cleaner, branded feel */
 #MainMenu, footer, header[data-testid="stHeader"] {{ visibility: hidden; height: 0; }}
 .block-container {{ padding-top: 1rem; max-width: 1200px; }}
-
 /* numeric output reads as monospace, like a spec sheet */
 [data-testid="stDataFrame"] * , [data-testid="stMetricValue"], .stNumberInput input {{
-    font-family: 'IBM Plex Mono', monospace !important;
+font-family: 'IBM Plex Mono', monospace !important;
 }}
-
 /* ---------- masthead ---------- */
 .veda-masthead {{
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 18px 0 16px 0;
-    border-bottom: 3px solid var(--veda-red);
-    margin-bottom: 28px;
+display: flex;
+align-items: center;
+gap: 20px;
+padding: 18px 0 16px 0;
+border-bottom: 3px solid var(--veda-red);
+margin-bottom: 28px;
 }}
 .veda-masthead img {{ height: 56px; width: 56px; object-fit: contain; }}
 .veda-masthead .title-block {{ line-height: 1.15; }}
 .veda-masthead .company {{
-    font-size: 12px; font-weight: 600; letter-spacing: 0.14em;
-    color: var(--veda-red); text-transform: uppercase; margin: 0 0 2px 0;
+font-size: 12px; font-weight: 600; letter-spacing: 0.14em;
+color: var(--veda-red); text-transform: uppercase; margin: 0 0 2px 0;
 }}
 .veda-masthead .tool-name {{
-    font-size: 26px; font-weight: 700; color: var(--ink); margin: 0;
+font-size: 26px; font-weight: 700; color: var(--ink); margin: 0;
 }}
 .veda-masthead .tool-sub {{
-    font-size: 13px; color: var(--steel-light); margin: 2px 0 0 0;
+font-size: 13px; color: var(--steel-light); margin: 2px 0 0 0;
 }}
-
 /* ---------- step rail: reflects the real calc pipeline ---------- */
 .step-header {{
-    display: flex; align-items: center; gap: 14px;
-    margin: 8px 0 4px 0;
+display: flex; align-items: center; gap: 14px;
+margin: 8px 0 4px 0;
 }}
 .step-badge {{
-    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
-    background: var(--veda-red); color: white; font-family: 'IBM Plex Mono', monospace;
-    font-weight: 600; font-size: 14px; display: flex; align-items: center;
-    justify-content: center;
+flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+background: var(--veda-red); color: white; font-family: 'IBM Plex Mono', monospace;
+font-weight: 600; font-size: 14px; display: flex; align-items: center;
+justify-content: center;
 }}
 .step-title {{ font-size: 19px; font-weight: 700; color: var(--ink); margin: 0; }}
 .step-caption {{ font-size: 13px; color: var(--steel-light); margin: 2px 0 18px 44px; }}
 .step-rail {{
-    border-left: 2px solid var(--hairline); margin-left: 14px; padding-left: 30px;
-    margin-bottom: 6px;
+border-left: 2px solid var(--hairline); margin-left: 14px; padding-left: 30px;
+margin-bottom: 6px;
 }}
-
 /* ---------- stat cards (replace default st.metric look) ---------- */
 .stat-row {{ display: flex; gap: 14px; margin: 4px 0 22px 0; flex-wrap: wrap; }}
 .stat-card {{
-    background: var(--panel); border: 1px solid var(--hairline); border-radius: 6px;
-    padding: 14px 18px; flex: 1; min-width: 160px;
+background: var(--panel); border: 1px solid var(--hairline); border-radius: 6px;
+padding: 14px 18px; flex: 1; min-width: 160px;
 }}
 .stat-card .label {{
-    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--steel-light);
-    text-transform: uppercase; margin: 0 0 4px 0;
+font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--steel-light);
+text-transform: uppercase; margin: 0 0 4px 0;
 }}
 .stat-card .value {{
-    font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600;
-    color: var(--ink); margin: 0;
+font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600;
+color: var(--ink); margin: 0;
 }}
 .stat-card .delta {{ font-size: 12px; color: var(--steel-light); margin-top: 2px; }}
 .stat-card.accent {{ border-left: 3px solid var(--veda-red); }}
-
 /* section spacing */
-.section-gap {{ margin-top: 38px; }}
-</style>
-""", unsafe_allow_html=True)
+.section-gap {{ margin-top: 38px; }}</style>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
 # MASTHEAD
