@@ -29,6 +29,7 @@ from combined_stress import calc_combined_stress
 from base_foundation import calc_base_foundation
 from base_chair_stress import calc_base_chair_stress, get_base_plate_my_coef
 from flange_design import calc_flange_design
+from auto_thickness import calc_auto_thickness
 from locations import LOCATIONS, MANUAL_ENTRY
 from assets import VEDA_LOGO_B64
 
@@ -246,7 +247,7 @@ with st.sidebar:
 inputs = ChimneyInputs(
     H=H, id_top=id_top, base_elev=base_elev, flare_h=flare_h, flare_bot_od=flare_bot_od,
     density=density, design_temp=design_temp, ca_int=ca_int, ca_ext=ca_ext,
-    insulation=insulation, insul_thk=insul_thk,
+    insulation=insulation, insul_thk=insul_thk, lining=lining,
     location=location if location != MANUAL_ENTRY else "Manual",
     vb=vb, k1=k1, terrain_cat=terrain_cat, k3=k3, ki=ki, z_seismic=z_seismic,
     shape_cyl=shape_cyl, shape_ladder=shape_ladder,
@@ -281,6 +282,25 @@ step_header(1, "Zone Table",
 if "zone_table" not in st.session_state or st.session_state.get("_last_h") != (H, flare_h, max_zone_len):
     st.session_state.zone_table = pd.DataFrame(default_zone_table(inputs))
     st.session_state["_last_h"] = (H, flare_h, max_zone_len)
+
+btn_col, cap_col = st.columns([1, 3])
+with btn_col:
+    auto_clicked = st.button("⚡ Auto-size thickness (IS 6533 Cl 7.3.1)")
+with cap_col:
+    st.caption("Stress-based sizing (required thickness from governing moment, min 6mm, min OD/500), "
+               "rounded up to standard plate. Deflection governor not yet ported - may under-size very "
+               "tall/slender designs where deflection (not stress) governs. Overwrites the table below "
+               "once; you can still edit any value after.")
+
+if auto_clicked:
+    current = st.session_state.zone_table
+    portions = current["Portion"].tolist()
+    lengths = current["Length (m)"].tolist()
+    proj_dia_cur = current["Proj Dia (mm)"].tolist()
+    with st.spinner("Iterating thickness against the full load chain..."):
+        auto_thk = calc_auto_thickness(inputs, portions, lengths, proj_dia_cur,
+                                        plat_elev, plat_width, plat_sweep)
+    st.session_state.zone_table["Thk gross (mm)"] = auto_thk
 
 edited = st.data_editor(
     st.session_state.zone_table,
