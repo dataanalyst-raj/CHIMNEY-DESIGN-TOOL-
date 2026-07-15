@@ -183,17 +183,7 @@ with st.sidebar:
             [MANUAL_ENTRY] + sorted(LOCATIONS.keys()),
             key="location_select", on_change=_apply_location,
         )
-        st.caption(
-            "79 cities - wind speed (Vb) transcribed directly from the user's own copy of IS 875 "
-            "Part 3:2015 Annex A (primary source). This replaced an earlier web-sourced version "
-            "that had 10 confirmed wrong values (~20% error rate) - a good reminder of why this "
-            "was worth getting right. Seismic Z still uses a separate secondary source (standard "
-            "IS 1893 Table 3 scale: II=0.10, III=0.16, IV=0.24, V=0.36) and is only available for "
-            "the original 37 cities - newer additions auto-fill Vb only, set Z manually. Also note: "
-            "these standard Z values differ from a reference design's own printed Z=0.20 for its "
-            "location, an unresolved discrepancy that doesn't affect any city in this list. Terrain "
-            "category still needs manual judgement. You can edit any auto-filled value below."
-        )
+        st.caption("79 cities, wind speed per IS 875 Part 3:2015 Annex A. Values stay editable below.")
 
     with st.expander("Wind", expanded=False):
         vb = st.number_input("Basic wind speed, Vb (m/s)", value=39.0, step=0.5, key="vb_input")
