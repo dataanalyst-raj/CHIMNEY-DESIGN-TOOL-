@@ -305,12 +305,11 @@ total_wt = total_shell_weight(zones)
 st.markdown(f"""<div class="stat-row">{stat_card("Total shell weight", f"{total_wt:,.1f} kg", accent=True)}{stat_card("Base OD", f"{zones[-1].bot_od:,.1f} mm")}{stat_card("Top OD", f"{zones[0].top_od:,.1f} mm")}</div>""", unsafe_allow_html=True)
 
 # Chimney elevation drawing - filled silhouette, TRUE TO SCALE (both axes
-# in metres - the earlier version mixed mm on x with m on y under a locked
-# 1:1 scale, which is what made it render as a flat disconnected sliver).
+# in metres). Improved: tightened axis range (was wasting most of the
+# chart width on empty space), added height/OD dimension labels and
+# platform elevation labels, like a real engineering elevation drawing.
 fig = go.Figure()
 
-# build one closed polygon: up the left side (base->top), across the top,
-# down the right side (top->base), across the base, back to start.
 left_x, left_y = [], []
 elev = 0.0
 for z in reversed(zones):  # base zone first
@@ -328,7 +327,14 @@ fig.add_trace(go.Scatter(
     showlegend=False, hoverinfo="skip",
 ))
 
-# zone boundary lines (light, unobtrusive)
+# subtle highlight stripe (suggests a curved/cylindrical surface)
+hi_x = [x * 0.45 - abs(x) * 0.15 for x in left_x] + [x * 0.05 for x in reversed(left_x)] + [left_x[0] * 0.45]
+hi_y = left_y + list(reversed(left_y)) + [left_y[0]]
+fig.add_trace(go.Scatter(x=hi_x, y=hi_y, mode="lines", fill="toself",
+                          fillcolor="rgba(255,255,255,0.35)", line=dict(width=0),
+                          showlegend=False, hoverinfo="skip"))
+
+# zone boundary lines
 cum_elev = 0.0
 for z in reversed(zones):
     cum_elev += z.length
@@ -336,8 +342,8 @@ for z in reversed(zones):
     fig.add_shape(type="line", x0=-half_od * 1.15, x1=half_od * 1.15,
                    y0=cum_elev, y1=cum_elev, line=dict(color="#E2E2E4", width=1, dash="dot"))
 
-# platform markers (Veda red ticks)
-for pe, pw in zip(plat_elev, plat_width):
+# platform markers + elevation labels
+for i, (pe, pw) in enumerate(zip(plat_elev, plat_width)):
     if pe <= 0:
         continue
     od_here = None
@@ -353,24 +359,48 @@ for pe, pw in zip(plat_elev, plat_width):
     ext = pw / 1000
     fig.add_shape(type="line", x0=-half - ext, x1=half + ext, y0=pe, y1=pe,
                    line=dict(color="#D8242D", width=3))
+    fig.add_annotation(x=half + ext, y=pe, text=f"  P{i+1} @ {pe:.1f}m",
+                        showarrow=False, xanchor="left", font=dict(size=10, color="#D8242D"))
+
+max_half = max(z.bot_od for z in zones) / 2000
+max_h = zones[0].elev_top
+base_od_m = zones[-1].bot_od / 1000
+top_od_m = zones[0].top_od / 1000
 
 # ground line
-max_half = max(z.bot_od for z in zones) / 2000
-fig.add_shape(type="line", x0=-max_half * 1.4, x1=max_half * 1.4, y0=0, y1=0,
+fig.add_shape(type="line", x0=-max_half * 1.3, x1=max_half * 1.3, y0=0, y1=0,
               line=dict(color="#1A1A1A", width=2))
 
-max_h = zones[0].elev_top
+# height dimension line (right side, with arrows)
+dim_x = max_half * 1.9
+fig.add_annotation(x=dim_x, y=0, ax=dim_x, ay=max_h, xref="x", yref="y", axref="x", ayref="y",
+                    showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=1.2, arrowcolor="#4A5568")
+fig.add_annotation(x=dim_x, y=max_h, ax=dim_x, ay=0, xref="x", yref="y", axref="x", ayref="y",
+                    showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=1.2, arrowcolor="#4A5568")
+fig.add_annotation(x=dim_x, y=max_h / 2, text=f"H = {max_h:.1f}m", showarrow=False,
+                    textangle=-90, font=dict(size=11, color="#4A5568"), xanchor="left")
+
+# OD labels
+fig.add_annotation(x=0, y=-max_h * 0.06, text=f"Base OD: {base_od_m*1000:.0f}mm",
+                    showarrow=False, font=dict(size=10, color="#4A5568"))
+fig.add_annotation(x=0, y=max_h * 1.03, text=f"Top OD: {top_od_m*1000:.0f}mm",
+                    showarrow=False, font=dict(size=10, color="#4A5568"))
+
 fig.update_layout(
     title=dict(text="Chimney Elevation (to scale)", font=dict(family="IBM Plex Sans", size=15, color="#1A1A1A")),
-    xaxis=dict(title="m", scaleanchor="y", scaleratio=1, zeroline=False),
-    yaxis=dict(title="Elevation (m)", range=[-max_h * 0.03, max_h * 1.05]),
-    height=560, showlegend=False,
+    xaxis=dict(title="m", scaleanchor="y", scaleratio=1, zeroline=False,
+               range=[-max_half * 1.6, max_half * 2.6]),
+    yaxis=dict(title="Elevation (m)", range=[-max_h * 0.1, max_h * 1.08]),
+    height=600, showlegend=False,
     plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF",
     font=dict(family="IBM Plex Mono", size=11, color="#4A5568"),
     margin=dict(t=50, l=10, r=10, b=10),
 )
-st.plotly_chart(fig, use_container_width=True)
+chart_col, _ = st.columns([1, 2])
+with chart_col:
+    st.plotly_chart(fig, use_container_width=True)
 st.caption("Red ticks mark platform elevations. Dotted lines mark zone boundaries. Drawn true to scale (1m = 1m on both axes).")
+
 
 
 # ---------------------------------------------------------------------
