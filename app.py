@@ -29,6 +29,7 @@ from combined_stress import calc_combined_stress
 from base_foundation import calc_base_foundation
 from base_chair_stress import calc_base_chair_stress, get_base_plate_my_coef
 from flange_design import calc_flange_design
+from locations import LOCATIONS, MANUAL_ENTRY
 from assets import VEDA_LOGO_B64
 
 st.set_page_config(page_title="Chimney Design Tool | Veda Engineering",
@@ -167,8 +168,35 @@ with st.sidebar:
         insul_thk = st.number_input("Insulation thickness (mm)", value=0.0, step=5.0,
                                      disabled=(insulation == "None"))
 
+    def _apply_location():
+        loc = st.session_state.get("location_select")
+        data = LOCATIONS.get(loc)
+        if data:
+            if data.get("vb") is not None:
+                st.session_state["vb_input"] = data["vb"]
+            if data.get("z") is not None:
+                st.session_state["z_seismic_input"] = data["z"]
+
+    with st.expander("Location", expanded=True):
+        location = st.selectbox(
+            "City (auto-fills wind speed & seismic Z below)",
+            [MANUAL_ENTRY] + sorted(LOCATIONS.keys()),
+            key="location_select", on_change=_apply_location,
+        )
+        st.caption(
+            "79 cities - wind speed (Vb) transcribed directly from the user's own copy of IS 875 "
+            "Part 3:2015 Annex A (primary source). This replaced an earlier web-sourced version "
+            "that had 10 confirmed wrong values (~20% error rate) - a good reminder of why this "
+            "was worth getting right. Seismic Z still uses a separate secondary source (standard "
+            "IS 1893 Table 3 scale: II=0.10, III=0.16, IV=0.24, V=0.36) and is only available for "
+            "the original 37 cities - newer additions auto-fill Vb only, set Z manually. Also note: "
+            "these standard Z values differ from a reference design's own printed Z=0.20 for its "
+            "location, an unresolved discrepancy that doesn't affect any city in this list. Terrain "
+            "category still needs manual judgement. You can edit any auto-filled value below."
+        )
+
     with st.expander("Wind", expanded=False):
-        vb = st.number_input("Basic wind speed, Vb (m/s)", value=39.0, step=0.5)
+        vb = st.number_input("Basic wind speed, Vb (m/s)", value=39.0, step=0.5, key="vb_input")
         k1 = st.number_input("Risk coefficient, K1", value=0.92, step=0.01)
         terrain_cat = st.selectbox("Terrain category", [1, 2, 3, 4], index=2)
         k3 = st.number_input("Topography factor, K3", value=1.0, step=0.01)
@@ -200,6 +228,8 @@ with st.sidebar:
                                           "from the numeric Terrain Category above.")
 
     with st.expander("Seismic (IS 1893)", expanded=False):
+        z_seismic = st.number_input("Seismic zone factor, Z", value=0.20, step=0.01,
+                                     format="%.2f", key="z_seismic_input")
         beta_soil = st.number_input("Soil-foundation coefficient, Beta", value=1.5, step=0.1)
         importance_i = st.number_input("Importance factor, I", value=1.5, step=0.1)
 
@@ -227,7 +257,8 @@ inputs = ChimneyInputs(
     H=H, id_top=id_top, base_elev=base_elev, flare_h=flare_h, flare_bot_od=flare_bot_od,
     density=density, design_temp=design_temp, ca_int=ca_int, ca_ext=ca_ext,
     insulation=insulation, insul_thk=insul_thk,
-    vb=vb, k1=k1, terrain_cat=terrain_cat, k3=k3, ki=ki,
+    location=location if location != MANUAL_ENTRY else "Manual",
+    vb=vb, k1=k1, terrain_cat=terrain_cat, k3=k3, ki=ki, z_seismic=z_seismic,
     shape_cyl=shape_cyl, shape_ladder=shape_ladder,
     max_zone_len=max_zone_len,
     gust_damp_frac=gust_damp_frac, misc_weight=misc_weight, contingency_wt=contingency_wt,
