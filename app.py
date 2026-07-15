@@ -304,26 +304,74 @@ st.dataframe(geo_df, use_container_width=True, hide_index=True)
 total_wt = total_shell_weight(zones)
 st.markdown(f"""<div class="stat-row">{stat_card("Total shell weight", f"{total_wt:,.1f} kg", accent=True)}{stat_card("Base OD", f"{zones[-1].bot_od:,.1f} mm")}{stat_card("Top OD", f"{zones[0].top_od:,.1f} mm")}</div>""", unsafe_allow_html=True)
 
-# OD profile chart
+# Chimney elevation drawing - filled silhouette, TRUE TO SCALE (both axes
+# in metres - the earlier version mixed mm on x with m on y under a locked
+# 1:1 scale, which is what made it render as a flat disconnected sliver).
 fig = go.Figure()
-xs, ys = [], []
+
+# build one closed polygon: up the left side (base->top), across the top,
+# down the right side (top->base), across the base, back to start.
+left_x, left_y = [], []
 elev = 0.0
-for z in reversed(zones):  # base to top
-    xs += [-z.bot_od / 2, -z.top_od / 2]
-    ys += [elev, elev + z.length]
+for z in reversed(zones):  # base zone first
+    left_x += [-z.bot_od / 2000, -z.top_od / 2000]   # mm -> m, radius
+    left_y += [elev, elev + z.length]
     elev += z.length
-fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#D8242D", width=2.5), name="Left OD"))
-fig.add_trace(go.Scatter(x=[-x for x in xs], y=ys, mode="lines", line=dict(color="#D8242D", width=2.5),
-                          name="Right OD", showlegend=False))
+right_x = [-x for x in reversed(left_x)]
+right_y = list(reversed(left_y))
+poly_x = left_x + right_x + [left_x[0]]
+poly_y = left_y + right_y + [left_y[0]]
+
+fig.add_trace(go.Scatter(
+    x=poly_x, y=poly_y, mode="lines", fill="toself",
+    fillcolor="#C4CAD3", line=dict(color="#4A5568", width=1.5),
+    showlegend=False, hoverinfo="skip",
+))
+
+# zone boundary lines (light, unobtrusive)
+cum_elev = 0.0
+for z in reversed(zones):
+    cum_elev += z.length
+    half_od = z.top_od / 2000
+    fig.add_shape(type="line", x0=-half_od * 1.15, x1=half_od * 1.15,
+                   y0=cum_elev, y1=cum_elev, line=dict(color="#E2E2E4", width=1, dash="dot"))
+
+# platform markers (Veda red ticks)
+for pe, pw in zip(plat_elev, plat_width):
+    if pe <= 0:
+        continue
+    od_here = None
+    for z in zones:
+        z_bot = z.elev_top - z.length
+        if z_bot <= pe <= z.elev_top:
+            frac = (z.elev_top - pe) / z.length if z.length > 0 else 0
+            od_here = (z.top_od + (z.bot_od - z.top_od) * frac) / 1000
+            break
+    if od_here is None:
+        continue
+    half = od_here / 2
+    ext = pw / 1000
+    fig.add_shape(type="line", x0=-half - ext, x1=half + ext, y0=pe, y1=pe,
+                   line=dict(color="#D8242D", width=3))
+
+# ground line
+max_half = max(z.bot_od for z in zones) / 2000
+fig.add_shape(type="line", x0=-max_half * 1.4, x1=max_half * 1.4, y0=0, y1=0,
+              line=dict(color="#1A1A1A", width=2))
+
+max_h = zones[0].elev_top
 fig.update_layout(
-    title=dict(text="Shell Profile (OD)", font=dict(family="IBM Plex Sans", size=15, color="#1A1A1A")),
-    xaxis_title="mm", yaxis_title="Elevation (m)",
-    height=420, showlegend=False, xaxis=dict(scaleanchor="y"),
+    title=dict(text="Chimney Elevation (to scale)", font=dict(family="IBM Plex Sans", size=15, color="#1A1A1A")),
+    xaxis=dict(title="m", scaleanchor="y", scaleratio=1, zeroline=False),
+    yaxis=dict(title="Elevation (m)", range=[-max_h * 0.03, max_h * 1.05]),
+    height=560, showlegend=False,
     plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF",
     font=dict(family="IBM Plex Mono", size=11, color="#4A5568"),
     margin=dict(t=50, l=10, r=10, b=10),
 )
 st.plotly_chart(fig, use_container_width=True)
+st.caption("Red ticks mark platform elevations. Dotted lines mark zone boundaries. Drawn true to scale (1m = 1m on both axes).")
+
 
 # ---------------------------------------------------------------------
 # STEP 3 — STATIC WIND LOADS
