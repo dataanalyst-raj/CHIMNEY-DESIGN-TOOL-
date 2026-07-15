@@ -64,6 +64,27 @@ class ChimneyInputs:
     # --- Zone discretisation ---
     max_zone_len: float = 6.0          # auto-split target, m (used only if no override table)
 
+    # --- Damping / dynamic ---
+    gust_damp_frac: float = 0.02       # gust load damping, fraction of critical
+
+    # --- Seismic (IS 1893) ---
+    beta_soil: float = 1.5             # soil-foundation system coefficient
+    importance_i: float = 1.5          # importance factor
+
+    # --- Lining / terrain type for dynamic tables ---
+    terrain_type: str = "B"            # "A" or "B", for Table 6 pulsation coeff (Kurkumbh uses B)
+
+    # --- Allowable stresses (derived from material + grades in the Excel
+    # tool's DeriveAllowables; exposed as direct inputs here so they can be
+    # matched to a specific reference design, e.g. Kurkumbh's modular ratio
+    # of 12 rather than the M20-grade default of 13) ---
+    allow_base_plate: float = 1682.0   # kg/cm2
+    allow_flange_pl: float = 1682.0    # kg/cm2
+    allow_fdn_bolt_t: float = 1223.0   # kg/cm2 (foundation bolt tension)
+    allow_concrete: float = 43.0       # kg/cm2 (concrete bearing)
+    modular_ratio: float = 12.0        # Esteel/Econcrete, n
+    flange_min_thk: float = 12.0       # mm
+
 
 def default_zone_table(inputs: ChimneyInputs):
     """
