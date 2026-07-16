@@ -155,7 +155,18 @@ with st.sidebar:
         H = st.number_input("Total height, H (m)", value=32.0, step=0.5)
         id_top = st.number_input("Top internal dia (mm)", value=800.0, step=10.0)
         base_elev = st.number_input("Base elevation above ground (m)", value=0.5, step=0.1)
-        flare_h = st.number_input("Flare height (m)", value=16.0, step=0.5)
+
+        auto_flare = st.radio("Auto-calculate flare height?", ["Yes", "No"], index=0, horizontal=True,
+                               help="Yes: Flare height = MAX(H/3, H - 20 x ID_top/1000), recalculated "
+                                    "live as H or top diameter change. No: type your own value.")
+        _auto_flare_h = round(max(H / 3, H - 20 * id_top / 1000), 3)
+        if auto_flare == "Yes":
+            st.session_state["flare_h_input"] = _auto_flare_h
+        elif "flare_h_input" not in st.session_state:
+            st.session_state["flare_h_input"] = _auto_flare_h  # sensible first-time default
+        flare_h = st.number_input("Flare height (m)", step=0.5,
+                                   key="flare_h_input", disabled=(auto_flare == "Yes"))
+
         flare_bot_od = st.number_input(
             "Flare bottom OD (mm)", value=1820.0, step=10.0,
             help="This is OUTER diameter. If your source report gives an ID, "
