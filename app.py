@@ -333,7 +333,6 @@ edited = st.data_editor(
         "Thk gross (mm)": st.column_config.NumberColumn(format="%.1f", min_value=3.0, disabled=(auto_thk_mode == "Yes")),
         "Proj Dia (mm)": st.column_config.NumberColumn(format="%.0f", min_value=0.0),
     },
-    key="zone_editor",
 )
 st.session_state.zone_table = edited
 zone_rows = edited.to_dict("records")
