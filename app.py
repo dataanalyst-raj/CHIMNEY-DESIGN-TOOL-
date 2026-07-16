@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 from inputs import ChimneyInputs, default_zone_table
 from geometry import calc_shell_geometry, total_shell_weight
 from wind_loads import calc_wind_loads, total_base_shear_kg, total_base_moment_kgm
+from static_deflection import calc_static_deflection
 from natural_frequency import calc_natural_frequency
 from gust_factor import calc_gust_factor, calc_strakes_check, top_third_mean_od
 from stress_checks import calc_stress_checks
@@ -298,8 +299,7 @@ with st.form("zone_table_form"):
                                   help="Yes: stress-based sizing, recalculated from the full load chain. "
                                        "No: type your own thickness per zone.")
     st.caption("Edit as many cells as you like below, then click Apply — nothing recalculates until you do. "
-               "Deflection governor not yet ported for auto-thickness - may under-size very tall/slender "
-               "designs where deflection (not stress) governs.")
+               "Auto-thickness now includes both the stress check and the H/200 deflection governor.")
 
     edited = st.data_editor(
         st.session_state.zone_table,
@@ -492,9 +492,28 @@ st.dataframe(wind_df, use_container_width=True, hide_index=True)
 st.markdown(f"""<div class="stat-row">{stat_card("Total base shear", f"{total_base_shear_kg(wind_loads):,.1f} kg", accent=True)}{stat_card("Total base moment", f"{total_base_moment_kgm(wind_loads):,.1f} kg&middot;m", accent=True)}</div>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
-# STEP 4 — NATURAL FREQUENCY
+# STEP 4 — STATIC DEFLECTION
 # ---------------------------------------------------------------------
-step_header(4, "Natural Frequency",
+step_header(4, "Static Deflection",
+             "IS 6533 Cl 7.4 — moment-area method, top deflection vs the H/200 allowable. "
+             "Uses plain static wind force (not the governing/gust-amplified load).")
+
+defl = calc_static_deflection(inputs, zones, wind_loads)
+defl_df = pd.DataFrame([{
+    "Zone": i + 1, "Mid elev (m)": round(zones[i].elev_top - zones[i].length / 2, 2),
+    "Wind force (kg)": round(wind_loads[i].force_kg, 1), "Defl contrib (cm)": round(defl.zone_defl[i], 4),
+} for i in range(len(zones))])
+st.dataframe(defl_df, use_container_width=True, hide_index=True)
+
+st.markdown(f"""<div class="stat-row">{stat_card("Top deflection", f"{defl.top_deflection:.2f} cm", accent=True)}{stat_card("Allowable (H/200)", f"{defl.defl_allow:.2f} cm")}{stat_card("Check", "OK" if defl.defl_ok else "EXCEEDS LIMIT")}</div>""", unsafe_allow_html=True)
+if not defl.defl_ok:
+    st.warning("Top deflection exceeds the H/200 allowable — the shell needs to be stiffer (thicker) "
+               "than the stress check alone requires. This now feeds the Auto-size Thickness governor below.")
+
+# ---------------------------------------------------------------------
+# STEP 5 — NATURAL FREQUENCY
+# ---------------------------------------------------------------------
+step_header(5, "Natural Frequency",
              "Rayleigh method, IS 6533 Cl 8.3.1. <b>Disclosed open item:</b> a consistent "
              "~217kg/zone mass residual vs the Dynastac reference remains unexplained "
              "(flange weight was tested and ruled out) — natural frequency will read "
@@ -515,7 +534,7 @@ st.markdown(f"""<div class="stat-row">{stat_card("Natural frequency", f"{nf.nat_
 # ---------------------------------------------------------------------
 # STEP 5 — GUST FACTOR & ACROSS-WIND (STRAKES)
 # ---------------------------------------------------------------------
-step_header(5, "Gust Factor &amp; Across-Wind Check",
+step_header(6, "Gust Factor &amp; Across-Wind Check",
              "IS 875 Part 3 Gust Factor Method Cl 8.3, plus IS 6533 Cl A-3 vortex-shedding "
              "check. <b>Disclosed open items:</b> gfr and Vh each carry independent gaps "
              "(~18% and ~27% respectively on the validated reference) that happened to "
@@ -546,7 +565,7 @@ st.markdown(f'<div style="background:{strakes_color};padding:10px 16px;border-ra
 # ---------------------------------------------------------------------
 # STEP 6 — ALLOWABLE STRESS (STRESS CHECKS)
 # ---------------------------------------------------------------------
-step_header(6, "Allowable Stress",
+step_header(7, "Allowable Stress",
              "IS 6533 Annex C &amp; Cl 7.3.1. <b>Disclosed open item:</b> the temperature "
              "factor curve gives 0.660 at 280&deg;C vs a reference design's actual 0.702 "
              "(~6% low, conservative direction — not fixed without more design data at "
@@ -564,7 +583,7 @@ st.dataframe(sc_df, use_container_width=True, hide_index=True)
 # ---------------------------------------------------------------------
 # STEP 7 — DYNAMIC ANALYSIS (MODE 1)
 # ---------------------------------------------------------------------
-step_header(7, "Dynamic Analysis (Mode 1)",
+step_header(8, "Dynamic Analysis (Mode 1)",
              "IS 6533 Cl 8.3 modal wind load. Formula-level bug fixed 14 Jul 2026 — "
              "the dynamic coefficient <code>xi</code> was being double-counted in the final "
              "load; verified exact after removing it.")
@@ -581,7 +600,7 @@ st.caption(f"e = T1&middot;Vb/1200 = {dyn.e:.4f} | xi (Table 5, reference only) 
 # ---------------------------------------------------------------------
 # STEP 8 — GOVERNING LOADS (WIND + EARTHQUAKE)
 # ---------------------------------------------------------------------
-step_header(8, "Governing Design Moment",
+step_header(9, "Governing Design Moment",
              "IS 6533 + IS 1893. Governing = MAX of 3 real wind methods (3-sec static, "
              "HMW+Inertia summed, GEF method) — a real structural fix over the previous "
              "version, which compared the wrong 3 candidates. <b>Disclosed open item:</b> "
@@ -606,7 +625,7 @@ st.dataframe(gov_df, use_container_width=True, hide_index=True)
 # ---------------------------------------------------------------------
 # STEP 9 — COMBINED STRESS
 # ---------------------------------------------------------------------
-step_header(9, "Combined Stress",
+step_header(10, "Combined Stress",
              "IS 6533 Cl 7.7 — the central shell stress table, cumulative from top to each "
              "section, checked against the allowable from Step 6.")
 
@@ -624,7 +643,7 @@ st.markdown(f"""<div class="stat-row">{stat_card("Base shear", f"{cs[-1].shear:,
 # ---------------------------------------------------------------------
 # STEP 10 — BASE FOUNDATION & CHAIR STRESS
 # ---------------------------------------------------------------------
-step_header(10, "Base Foundation &amp; Chair Stress",
+step_header(11, "Base Foundation &amp; Chair Stress",
              "B&amp;Y detailed checks. <b>Disclosed open item:</b> even feeding a real design's "
              "exact PCD/bolt-count/moment/weight into this B&amp;Y k-solve doesn't reproduce its "
              "own printed stresses — narrowed to an unexplained ~40%-of-expected effective bolt "
@@ -657,7 +676,7 @@ st.markdown(f'<div style="background:{status_color};padding:10px 16px;border-rad
 # ---------------------------------------------------------------------
 # STEP 11 — FLANGE DESIGN
 # ---------------------------------------------------------------------
-step_header(11, "Flange Design",
+step_header(12, "Flange Design",
              "IS 6533 Cl 8.6 — inter-zone flanges &amp; bolts, N-1 joints for N zones. "
              "<b>Disclosed open item:</b> the bolt-force formula is the same family that shows "
              "the unresolved effective-bolt-area gap in Step 10 — confirmed to propagate here "
