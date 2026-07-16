@@ -4,18 +4,18 @@ AUTO-SIZE THICKNESS - port of the Excel tool's AutoSizeThickness
 IS 6533 Cl 7.3.1: t = MAX(stress-required-net + corrosion, 6.0mm, OD/500)
 
 Runs the FULL load pipeline (geometry -> wind -> natural frequency ->
-gust -> dynamic -> governing moment -> allowable stress) once per pass,
-computes the required thickness per zone from the governing moment and
-allowable stress, checks convergence, repeats up to 15 passes (matching
-the VBA), then rounds each zone UP to a standard plate size.
+gust -> dynamic -> governing moment -> allowable stress -> static
+deflection) once per pass, computes the required thickness per zone
+from the governing moment and allowable stress, applies the deflection
+governor if the top deflection exceeds H/200, checks convergence,
+repeats up to 15 passes (matching the VBA), then rounds each zone UP
+to a standard plate size.
 
-NOT YET PORTED: the VBA version also has a DEFLECTION GOVERNOR that
-scales thickness up further if top deflection exceeds the H/200
-allowable - that depends on Static Deflection (Module 10), which
-hasn't been ported to the web app yet. This auto-sizer only implements
-the stress-based path. For a chimney where deflection governs (tall,
-slender designs), the auto-sized thickness here may come out thinner
-than the real Excel tool would give - flagged, not silently ignored.
+DEFLECTION GOVERNOR (ported 16 Jul 2026, matches VBA exactly):
+  if top deflection > H/200 allowable:
+      scale = max(1, top_deflection / (0.95 * allowable))
+      every zone's thickness is scaled up by that factor, then the
+      final thickness = MAX(stress-required, deflection-scaled, OD/500)
 """
 import math
 from typing import List
@@ -27,6 +27,7 @@ from gust_factor import calc_gust_factor
 from stress_checks import calc_stress_checks
 from dynamic_analysis import calc_dynamic_analysis
 from governing_loads import calc_seismic_ah, calc_governing_loads
+from static_deflection import calc_static_deflection
 
 PI = 3.14159265358979
 STD_PLATES = [6, 8, 10, 12, 14, 16, 18, 20, 22, 25]
@@ -59,6 +60,15 @@ def calc_auto_thickness(inputs: ChimneyInputs, portions: List[str], lengths: Lis
                                      terrain_type=inputs.terrain_type)
         eq_ah = calc_seismic_ah(nf.nat_period, inputs.beta_soil, inputs.importance_i, inputs.z_seismic)
         gov = calc_governing_loads(inputs, zones, wind_loads, dyn, nf.mass, gust.G, eq_ah, proj_dia)
+        defl = calc_static_deflection(inputs, zones, wind_loads)
+
+        # deflection governor - scale every zone's thickness up if the top
+        # deflection exceeds the H/200 allowable (matches VBA exactly)
+        defl_scale = 1.0
+        if defl.defl_allow > 0 and defl.top_deflection > defl.defl_allow:
+            defl_scale = defl.top_deflection / (0.95 * defl.defl_allow)
+            if defl_scale < 1.0:
+                defl_scale = 1.0
 
         new_thk = [0.0] * n
         for i in range(n):
@@ -73,7 +83,9 @@ def calc_auto_thickness(inputs: ChimneyInputs, portions: List[str], lengths: Lis
 
             t_structural = max(treq_net * 10, 6.0)  # cm->mm, IS 6mm floor
             t_is = t_structural + inputs.ca_int + inputs.ca_ext
-            t_is = max(t_is, zones[i].mean_od / 500)  # IS OD/500 floor
+
+            t_defl = thk[i] * defl_scale  # deflection-scaled thickness
+            t_is = max(t_is, t_defl, zones[i].mean_od / 500)  # governing of all three
             new_thk[i] = t_is
 
         converged = all(abs(new_thk[i] - thk[i]) <= 0.01 for i in range(n))
