@@ -283,59 +283,67 @@ if "zone_table" not in st.session_state or st.session_state.get("_last_h") != (H
     st.session_state.zone_table = pd.DataFrame(default_zone_table(inputs))
     st.session_state["_last_h"] = (H, flare_h, max_zone_len)
 
-tog_col1, tog_col2 = st.columns(2)
-with tog_col1:
-    auto_length = st.radio("Auto-split Length?", ["Yes", "No"], index=1, horizontal=True,
-                            key="auto_length_radio",
-                            help="Yes: equal-split each portion (cylindrical/conical) by height. "
-                                 "No: type your own length per zone.")
-with tog_col2:
-    auto_thk_mode = st.radio("Auto-size Thickness (IS 6533 Cl 7.3.1)?", ["Yes", "No"], index=1, horizontal=True,
-                              key="auto_thk_radio",
-                              help="Yes: stress-based sizing, recalculated live from the full load chain. "
-                                   "No: type your own thickness per zone.")
-st.caption("Deflection governor not yet ported for auto-thickness - may under-size very tall/slender "
-           "designs where deflection (not stress) governs.")
+with st.form("zone_table_form"):
+    tog_col1, tog_col2 = st.columns(2)
+    with tog_col1:
+        auto_length = st.radio("Auto-split Length?", ["Yes", "No"],
+                                index=0 if st.session_state.get("auto_length_saved", "No") == "Yes" else 1,
+                                horizontal=True,
+                                help="Yes: equal-split each portion (cylindrical/conical) by height. "
+                                     "No: type your own length per zone.")
+    with tog_col2:
+        auto_thk_mode = st.radio("Auto-size Thickness (IS 6533 Cl 7.3.1)?", ["Yes", "No"],
+                                  index=0 if st.session_state.get("auto_thk_saved", "No") == "Yes" else 1,
+                                  horizontal=True,
+                                  help="Yes: stress-based sizing, recalculated from the full load chain. "
+                                       "No: type your own thickness per zone.")
+    st.caption("Edit as many cells as you like below, then click Apply — nothing recalculates until you do. "
+               "Deflection governor not yet ported for auto-thickness - may under-size very tall/slender "
+               "designs where deflection (not stress) governs.")
 
-current = st.session_state.zone_table
-portions = current["Portion"].tolist()
+    edited = st.data_editor(
+        st.session_state.zone_table,
+        num_rows="fixed",
+        use_container_width=True,
+        column_config={
+            "Zone": st.column_config.NumberColumn(disabled=True),
+            "Portion": st.column_config.SelectboxColumn(options=["Cylindrical", "Conical"], disabled=True),
+            "Length (m)": st.column_config.NumberColumn(format="%.3f", min_value=0.1, disabled=(auto_length == "Yes")),
+            "Thk gross (mm)": st.column_config.NumberColumn(format="%.1f", min_value=3.0, disabled=(auto_thk_mode == "Yes")),
+            "Proj Dia (mm)": st.column_config.NumberColumn(format="%.0f", min_value=0.0),
+        },
+    )
+    applied = st.form_submit_button("✅ Apply & Recalculate", use_container_width=True)
 
-if auto_length == "Yes":
-    n_cyl = portions.count("Cylindrical")
-    n_cone = portions.count("Conical")
-    cyl_portion = H - flare_h
-    cone_portion = flare_h
-    new_lengths = []
-    for p in portions:
-        if p == "Cylindrical":
-            new_lengths.append(round(cyl_portion / n_cyl, 3) if n_cyl else 0.0)
-        else:
-            new_lengths.append(round(cone_portion / n_cone, 3) if n_cone else 0.0)
-    st.session_state.zone_table["Length (m)"] = new_lengths
+if applied:
+    st.session_state["auto_length_saved"] = auto_length
+    st.session_state["auto_thk_saved"] = auto_thk_mode
+    portions = edited["Portion"].tolist()
 
-lengths_for_thk = st.session_state.zone_table["Length (m)"].tolist()
-proj_dia_cur = st.session_state.zone_table["Proj Dia (mm)"].tolist()
+    if auto_length == "Yes":
+        n_cyl = portions.count("Cylindrical")
+        n_cone = portions.count("Conical")
+        cyl_portion = H - flare_h
+        cone_portion = flare_h
+        new_lengths = []
+        for p in portions:
+            if p == "Cylindrical":
+                new_lengths.append(round(cyl_portion / n_cyl, 3) if n_cyl else 0.0)
+            else:
+                new_lengths.append(round(cone_portion / n_cone, 3) if n_cone else 0.0)
+        edited["Length (m)"] = new_lengths
 
-if auto_thk_mode == "Yes":
-    with st.spinner("Iterating thickness against the full load chain..."):
-        auto_thk = calc_auto_thickness(inputs, portions, lengths_for_thk, proj_dia_cur,
-                                        plat_elev, plat_width, plat_sweep)
-    st.session_state.zone_table["Thk gross (mm)"] = auto_thk
+    if auto_thk_mode == "Yes":
+        lengths_for_thk = edited["Length (m)"].tolist()
+        proj_dia_cur = edited["Proj Dia (mm)"].tolist()
+        with st.spinner("Iterating thickness against the full load chain..."):
+            auto_thk = calc_auto_thickness(inputs, portions, lengths_for_thk, proj_dia_cur,
+                                            plat_elev, plat_width, plat_sweep)
+        edited["Thk gross (mm)"] = auto_thk
 
-edited = st.data_editor(
-    st.session_state.zone_table,
-    num_rows="fixed",
-    use_container_width=True,
-    column_config={
-        "Zone": st.column_config.NumberColumn(disabled=True),
-        "Portion": st.column_config.SelectboxColumn(options=["Cylindrical", "Conical"], disabled=True),
-        "Length (m)": st.column_config.NumberColumn(format="%.3f", min_value=0.1, disabled=(auto_length == "Yes")),
-        "Thk gross (mm)": st.column_config.NumberColumn(format="%.1f", min_value=3.0, disabled=(auto_thk_mode == "Yes")),
-        "Proj Dia (mm)": st.column_config.NumberColumn(format="%.0f", min_value=0.0),
-    },
-)
-st.session_state.zone_table = edited
-zone_rows = edited.to_dict("records")
+    st.session_state.zone_table = edited
+
+zone_rows = st.session_state.zone_table.to_dict("records")
 
 total_len = sum(r["Length (m)"] for r in zone_rows)
 delta_txt = f"{total_len - H:+.2f} m vs H = {H:.2f} m"
