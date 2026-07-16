@@ -283,22 +283,42 @@ if "zone_table" not in st.session_state or st.session_state.get("_last_h") != (H
     st.session_state.zone_table = pd.DataFrame(default_zone_table(inputs))
     st.session_state["_last_h"] = (H, flare_h, max_zone_len)
 
-btn_col, cap_col = st.columns([1, 3])
-with btn_col:
-    auto_clicked = st.button("⚡ Auto-size thickness (IS 6533 Cl 7.3.1)")
-with cap_col:
-    st.caption("Stress-based sizing (required thickness from governing moment, min 6mm, min OD/500), "
-               "rounded up to standard plate. Deflection governor not yet ported - may under-size very "
-               "tall/slender designs where deflection (not stress) governs. Overwrites the table below "
-               "once; you can still edit any value after.")
+tog_col1, tog_col2 = st.columns(2)
+with tog_col1:
+    auto_length = st.radio("Auto-split Length?", ["Yes", "No"], index=1, horizontal=True,
+                            key="auto_length_radio",
+                            help="Yes: equal-split each portion (cylindrical/conical) by height. "
+                                 "No: type your own length per zone.")
+with tog_col2:
+    auto_thk_mode = st.radio("Auto-size Thickness (IS 6533 Cl 7.3.1)?", ["Yes", "No"], index=1, horizontal=True,
+                              key="auto_thk_radio",
+                              help="Yes: stress-based sizing, recalculated live from the full load chain. "
+                                   "No: type your own thickness per zone.")
+st.caption("Deflection governor not yet ported for auto-thickness - may under-size very tall/slender "
+           "designs where deflection (not stress) governs.")
 
-if auto_clicked:
-    current = st.session_state.zone_table
-    portions = current["Portion"].tolist()
-    lengths = current["Length (m)"].tolist()
-    proj_dia_cur = current["Proj Dia (mm)"].tolist()
+current = st.session_state.zone_table
+portions = current["Portion"].tolist()
+
+if auto_length == "Yes":
+    n_cyl = portions.count("Cylindrical")
+    n_cone = portions.count("Conical")
+    cyl_portion = H - flare_h
+    cone_portion = flare_h
+    new_lengths = []
+    for p in portions:
+        if p == "Cylindrical":
+            new_lengths.append(round(cyl_portion / n_cyl, 3) if n_cyl else 0.0)
+        else:
+            new_lengths.append(round(cone_portion / n_cone, 3) if n_cone else 0.0)
+    st.session_state.zone_table["Length (m)"] = new_lengths
+
+lengths_for_thk = st.session_state.zone_table["Length (m)"].tolist()
+proj_dia_cur = st.session_state.zone_table["Proj Dia (mm)"].tolist()
+
+if auto_thk_mode == "Yes":
     with st.spinner("Iterating thickness against the full load chain..."):
-        auto_thk = calc_auto_thickness(inputs, portions, lengths, proj_dia_cur,
+        auto_thk = calc_auto_thickness(inputs, portions, lengths_for_thk, proj_dia_cur,
                                         plat_elev, plat_width, plat_sweep)
     st.session_state.zone_table["Thk gross (mm)"] = auto_thk
 
@@ -309,8 +329,8 @@ edited = st.data_editor(
     column_config={
         "Zone": st.column_config.NumberColumn(disabled=True),
         "Portion": st.column_config.SelectboxColumn(options=["Cylindrical", "Conical"], disabled=True),
-        "Length (m)": st.column_config.NumberColumn(format="%.3f", min_value=0.1),
-        "Thk gross (mm)": st.column_config.NumberColumn(format="%.1f", min_value=3.0),
+        "Length (m)": st.column_config.NumberColumn(format="%.3f", min_value=0.1, disabled=(auto_length == "Yes")),
+        "Thk gross (mm)": st.column_config.NumberColumn(format="%.1f", min_value=3.0, disabled=(auto_thk_mode == "Yes")),
         "Proj Dia (mm)": st.column_config.NumberColumn(format="%.0f", min_value=0.0),
     },
     key="zone_editor",
