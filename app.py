@@ -32,6 +32,7 @@ from base_chair_stress import calc_base_chair_stress, get_base_plate_my_coef
 from flange_design import calc_flange_design
 from auto_thickness import calc_auto_thickness
 from locations import LOCATIONS, MANUAL_ENTRY
+from pdf_report import generate_pdf_report
 from assets import VEDA_LOGO_B64
 
 st.set_page_config(page_title="Chimney Design Tool | Veda Engineering",
@@ -144,6 +145,8 @@ color: var(--ink); margin: 0;
 # MASTHEAD
 # ---------------------------------------------------------------------
 st.markdown(f"""<div class="veda-masthead"><img src="data:image/png;base64,{VEDA_LOGO_B64}" alt="Veda Engineering"><div class="title-block"><p class="company">Veda Engineering</p><p class="tool-name">Steel Chimney Design Tool</p><p class="tool-sub">IS 6533 (Part 2) &middot; Self-Supporting Steel Chimneys &middot; Web Edition v1</p></div></div>""", unsafe_allow_html=True)
+
+pdf_placeholder = st.empty()  # filled in with the download button once all results are ready
 
 # ---------------------------------------------------------------------
 # SIDEBAR: INPUTS
@@ -701,6 +704,20 @@ fd_df = pd.DataFrame([{
 st.dataframe(fd_df, use_container_width=True, hide_index=True)
 
 st.markdown(f"""<div class="stat-row">{stat_card("Governing bolt force, P", f"{fd.bolt_force:,.0f} kg")}{stat_card("My (a) bolt-force bending", f"{fd.my_a:.1f} kgcm/cm")}{stat_card("My (b) compressive bending", f"{fd.my_b:.1f} kgcm/cm")}{stat_card("Governing My", f"{fd.my_governing:.1f} kgcm/cm", accent=True)}{stat_card("Induced stress", f"{fd.stress:.0f} kg/cm2", "OK" if fd.stress_ok else "FAIL")}</div>""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------
+# PDF REPORT — fills the placeholder created right under the masthead
+# ---------------------------------------------------------------------
+try:
+    pdf_bytes = generate_pdf_report(inputs, zones, zone_rows, wind_loads, defl, nf, gust, strakes,
+                                     sc, dyn, vortex, eq_ah, gov, cs, bf, bcs, fd)
+    fname = f"Veda_Chimney_Report_{inputs.location.replace(' ', '_')}_{inputs.H:.0f}m.pdf"
+    pdf_placeholder.download_button(
+        "📄 Download Full Results as PDF", data=pdf_bytes, file_name=fname,
+        mime="application/pdf", use_container_width=False,
+    )
+except Exception as e:
+    pdf_placeholder.warning(f"PDF generation hit an error: {e}")
 
 st.markdown("---")
 st.success("**All 11 modules ported and validated against the Kurkumbh 32m reference design.** "
